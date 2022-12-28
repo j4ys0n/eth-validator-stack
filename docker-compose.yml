@@ -46,6 +46,8 @@ services:
       - ./mnt/data/geth/geth/jwtsecret:/teku/jwtsecret # auth rpc jwt secret
       - /mnt/data/teku:/teku/data # data directory
       # - ./state.ssz:/teku/state.ssz # if starting from a state backup
+    depends_on:
+      - geth
     <<: *logging
   
   node_exporter:

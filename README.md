@@ -18,4 +18,16 @@ In the `prometheus.yml` configuration, under job config, you'll have to enter yo
 
 Dashboards and some of the prometheus config referenced from [CoinCashew's guide](https://www.coincashew.com/coins/overview-eth/guide-or-how-to-setup-a-validator-on-eth2-mainnet/part-i-installation/monitoring-your-validator-with-grafana-and-prometheus).
 
+It's recommended to start geth first, because teku mounts the jwt secret that's created.
+
+`docker-compose up -d geth && docker logs -f geth`
+
+Once that's up and running, start the rest of the stack.
+
+`docker-compose up -d`
+
+To see logs for a container, run: `docker logs --tail <last-n-lines> -f <container-name>` like `docker logs --tail 100 -f teku`.
+
+To see all of the logs for the stack, run `docker-compose logs --tail 10 -f`.
+
 Use at your own risk. No support is provided. Feedback/improvements will be considered.
