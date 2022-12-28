@@ -1,0 +1,118 @@
+version: '3.6'
+
+x-logging:
+  &logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: 100m
+      max-file: '3'
+
+services:
+
+  geth:
+    container_name: geth
+    image: ethereum/client-go:v1.10.24
+    restart: unless-stopped
+    stop_grace_period: 5m
+    # command:            '--http --http.api eth,web3,net,admin,debug,db,shh --http.addr 0.0.0.0 --http.port 8545 --ws --ws.addr 0.0.0.0 --ws.origins="*" --http.vhosts=* --authrpc.vhosts=* --authrpc.addr=0.0.0.0 --authrpc.port=8551 --txlookuplimit=0 --cache.preimages --syncmode full --gcmode archive --datadir /eth'
+    command: '--cache 8192 --http --http.api eth,web3,net,admin,debug,db,shh --http.addr 0.0.0.0 --http.port 8545 --ws --ws.addr 0.0.0.0 --ws.origins="*" --http.vhosts="*" --authrpc.vhosts="*" --authrpc.addr="0.0.0.0" --authrpc.port="8551" --txlookuplimit=0 --syncmode snap --datadir /eth'
+    ports:
+      - 8545:8545 # rpc
+      - 8546:8546 # websocket
+      - 8551:8551 # auth rpc (for cl client)
+      - 30303:30303/tcp # p2p
+      - 30303:30303/udp # p2p
+      - 6060:6060 # prometheus
+    volumes:
+      - /mnt/data/geth:/eth # data directory
+    <<: *logging
+  
+  teku:
+    container_name: teku
+    image: consensys/teku:22.12
+    restart: unless-stopped
+    stop_grace_period: 5m
+    user: 1000:1000
+    environment:
+      - JAVA_OPTS=-XX:SoftMaxHeapSize=2g -Xmx5g
+      - RAPID_SYNC_URL=https://beaconstate.info
+    command: '--ee-endpoint=http://geth:8551 --ee-jwt-secret-file=/teku/jwtsecret --data-base-path=/teku/data --metrics-enabled=true --metrics-host-allowlist="*" --rest-api-enabled=true --rest-api-docs-enabled=true --rest-api-interface=0.0.0.0 --rest-api-host-allowlist="*" --p2p-peer-upper-bound=250 --log-destination=CONSOLE --validators-proposer-default-fee-recipient=0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73 --validator-keys=validator/passwords/validator_888eef.txt' #--initial-state=/teku/state.ssz
+    ports:
+      - 5051:5051 # http api
+      - 9000:9000/tcp # p2p
+      - 9000:9000/udp # p2p
+      - 8008:8008 # prometheus
+    volumes:
+      - ./mnt/data/geth/geth/jwtsecret:/teku/jwtsecret # auth rpc jwt secret
+      - /mnt/data/teku:/teku/data # data directory
+      # - ./state.ssz:/teku/state.ssz # if starting from a state backup
+    <<: *logging
+  
+  node_exporter:
+    container_name: node_exporter
+    image: prom/node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    network_mode: host # default port is 9100 (localhost:9100)
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro,rslave # host file system. rslave should work to include mounted volumes
+    <<: *logging
+  
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - 9090:9090 # data port for grafana
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus_data:/prometheus # data directory for persistence
+    depends_on:
+      - geth
+      - teku
+      - node_exporter
+    <<: *logging
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    restart: unless-stopped
+    ports:
+      - 3000:3000 # http website
+    volumes:
+      - ./grafana.yml:/etc/grafana/provisioning/datasources/prometheus.yml
+      - ./dashboards.yml:/etc/grafana/provisioning/dashboards/validator.yml
+      - ./dashboards:/etc/dashboards
+      - ./grafana_data:/var/lib/grafana # data directory for persistence
+    depends_on:
+      - prometheus
+    <<: *logging
+  
+  # loki:
+  #   container_name: loki
+  #   image: grafana/loki:2.6.1
+  #   restart: unless-stopped
+  #   ports:
+  #     - 3100:3100
+  #   command: -config.file=/etc/loki/local-config.yaml
+  #   <<: *logging
+
+  # promtail:
+  #   container_name: promtail
+  #   image: grafana/promtail:2.6.1
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /var/log:/var/log
+  #   command: -config.file=/etc/promtail/config.yml
+  #   <<: *logging
