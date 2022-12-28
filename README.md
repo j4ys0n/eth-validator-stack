@@ -16,4 +16,6 @@ In the `prometheus.yml` configuration, under job config, you'll have to enter yo
       - targets: ['host-ip-here:9100']
 ```
 
+Dashboards and some of the prometheus config referenced from [CoinCashew's guide](https://www.coincashew.com/coins/overview-eth/guide-or-how-to-setup-a-validator-on-eth2-mainnet/part-i-installation/monitoring-your-validator-with-grafana-and-prometheus).
+
 Use at your own risk. No support is provided. Feedback/improvements will be considered.
