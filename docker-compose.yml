@@ -15,7 +15,7 @@ services:
     image: ethereum/client-go:v1.10.24
     restart: unless-stopped
     stop_grace_period: 5m
-    command: '--cache 8192 --http --http.api eth,web3,net,admin,debug,db,shh --http.addr 0.0.0.0 --http.port 8545 --ws --ws.addr 0.0.0.0 --ws.origins="*" --http.vhosts="*" --authrpc.vhosts="*" --authrpc.addr="0.0.0.0" --authrpc.port="8551" --txlookuplimit=0 --syncmode snap --datadir /eth'
+    command: '--cache 8192 --http --http.api eth,web3,net,admin,debug,db,shh --http.addr 0.0.0.0 --http.port 8545 --ws --ws.addr 0.0.0.0 --ws.origins="*" --http.vhosts="*" --authrpc.vhosts="*" --authrpc.addr="0.0.0.0" --authrpc.port="8551" --metrics --metrics.addr="0.0.0.0" --txlookuplimit=0 --syncmode snap --datadir /eth'
     ports:
       - 8545:8545 # rpc
       - 8546:8546 # websocket
