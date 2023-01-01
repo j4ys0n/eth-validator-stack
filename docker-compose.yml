@@ -43,7 +43,7 @@ services:
       - 9000:9000/udp # p2p
       - 8008:8008 # prometheus
     volumes:
-      - ./mnt/data/geth/geth/jwtsecret:/teku/jwtsecret # auth rpc jwt secret
+      - ./jwtsecret:/teku/jwtsecret:ro # auth rpc jwt secret
       - /mnt/data/teku:/teku/data # data directory
       # - ./state.ssz:/teku/state.ssz # if starting from a state backup
     depends_on:
